@@ -20,6 +20,7 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
     contacto: '', email: '', telefono: '',
   })
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -62,19 +63,27 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
   async function handleCreateProv(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const res = await fetch('/api/proveedores', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newProv),
-    })
-    const prov = await res.json()
-    if (prov.id) {
+    setError('')
+    try {
+      const res = await fetch('/api/proveedores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProv),
+      })
+      const prov = await res.json()
+      if (!res.ok) {
+        setError(prov.error || 'Error al crear proveedor')
+        setSaving(false)
+        return
+      }
       setAllProveedores(prev => [...prev, prov])
       onSelect(prov)
       setShowNew(false)
       setShowDropdown(false)
       setQuery('')
       setNewProv({ nit: '', razon_social: '', banco: '', tipo_cuenta: '', numero_cuenta: '', contacto: '', email: '', telefono: '' })
+    } catch (err: any) {
+      setError(err.message || 'Error de conexión')
     }
     setSaving(false)
   }
@@ -161,6 +170,7 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
             <input placeholder="Email" type="email" value={newProv.email} onChange={e => setNewProv(p => ({ ...p, email: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
             <input placeholder="Teléfono" value={newProv.telefono} onChange={e => setNewProv(p => ({ ...p, telefono: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
           </div>
+          {error && <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs">{error}</div>}
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="bg-brand-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar'}

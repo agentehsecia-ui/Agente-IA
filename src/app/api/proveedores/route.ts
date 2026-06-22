@@ -1,57 +1,84 @@
 import { createServerClient } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = createServerClient()
-  const q = req.nextUrl.searchParams.get('q') || ''
 
-  let query = supabase.from('proveedores').select('*').order('razon_social')
-  if (q) {
-    query = query.or(`nit.ilike.%${q}%,razon_social.ilike.%${q}%`)
+  const { data, error } = await supabase
+    .from('proveedores')
+    .select('*')
+    .order('razon_social')
+    .limit(500)
+
+  if (error) {
+    console.error('GET proveedores error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-
-  const { data, error } = await query.limit(20)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  return NextResponse.json(data || [])
 }
 
 export async function POST(req: NextRequest) {
   const supabase = createServerClient()
-  const body = await req.json()
+  let body
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
+  }
 
+  if (!body.nit || !body.razon_social) {
+    return NextResponse.json({ error: 'NIT y Razón Social son obligatorios' }, { status: 400 })
+  }
+
+  // Verificar si ya existe
   const { data: existing } = await supabase
     .from('proveedores')
-    .select('id')
+    .select('*')
     .eq('nit', body.nit)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     const { data, error } = await supabase
       .from('proveedores')
       .update({
         razon_social: body.razon_social,
-        banco: body.banco,
-        tipo_cuenta: body.tipo_cuenta,
-        numero_cuenta: body.numero_cuenta,
-        contacto: body.contacto,
-        email: body.email,
-        telefono: body.telefono,
+        banco: body.banco || null,
+        tipo_cuenta: body.tipo_cuenta || null,
+        numero_cuenta: body.numero_cuenta || null,
+        contacto: body.contacto || null,
+        email: body.email || null,
+        telefono: body.telefono || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existing.id)
       .select()
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('UPDATE proveedor error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json(data)
   }
 
   const { data, error } = await supabase
     .from('proveedores')
-    .insert(body)
+    .insert({
+      nit: body.nit,
+      razon_social: body.razon_social,
+      banco: body.banco || null,
+      tipo_cuenta: body.tipo_cuenta || null,
+      numero_cuenta: body.numero_cuenta || null,
+      contacto: body.contacto || null,
+      email: body.email || null,
+      telefono: body.telefono || null,
+    })
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('INSERT proveedor error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json(data)
 }
