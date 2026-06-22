@@ -18,8 +18,8 @@ export default function LoginPage() {
     try {
       await signIn(email, password)
       router.push('/dashboard')
-    } catch {
-      setError('Credenciales incorrectas')
+    } catch (err: any) {
+      setError(err.message || 'Credenciales incorrectas')
     } finally {
       setLoading(false)
     }
