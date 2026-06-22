@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Perfil } from '@/lib/types'
 import {
   LayoutDashboard, FileText, CheckCircle, CreditCard,
-  Shield, Users, ClipboardList, Settings, LogOut, UserCog
+  Shield, Users, ClipboardList, Settings, LogOut, UserCog, Contact
 } from 'lucide-react'
 import { signOut } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
@@ -20,6 +20,7 @@ export default function Sidebar({ perfil }: Props) {
 
   const allLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['sostenibilidad', 'gerencia', 'admin'] },
+    { href: '/proveedores', label: 'Proveedores', icon: Contact, roles: ['sostenibilidad', 'gerencia', 'admin'] },
     { href: '/solicitudes', label: 'Solicitudes', icon: FileText, roles: ['sostenibilidad', 'admin'] },
     { href: '/aprobaciones', label: 'Aprobaciones', icon: CheckCircle, roles: ['gerencia', 'admin'] },
     { href: '/pagos', label: 'Cola de Pagos', icon: CreditCard, roles: ['gerencia', 'admin'] },
