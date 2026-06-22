@@ -7,6 +7,7 @@ import { SeguridadSocial } from '@/lib/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { createBrowserClient } from '@/lib/supabase'
 import { getPerfil } from '@/lib/auth'
+import PagoModal from '@/components/PagoModal'
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -17,6 +18,7 @@ export default function SeguridadSocialPage() {
   const [userId, setUserId] = useState('')
   const [form, setForm] = useState({ tipo_planilla: '', numero_planilla: '', periodo_mes: '', periodo_anio: '', valor: '', fecha_limite: '', observaciones: '' })
   const [saving, setSaving] = useState(false)
+  const [pagoId, setPagoId] = useState<string | null>(null)
 
   async function load() {
     const res = await fetch('/api/seguridad-social')
@@ -42,20 +44,18 @@ export default function SeguridadSocialPage() {
     load()
   }
 
-  async function handleAction(id: string, accion: string) {
+  async function handleAction(id: string, accion: string, fecha_pago?: string, numero_comprobante?: string) {
     const body: any = { id, accion, usuario_id: userId }
     if (accion === 'pagar') {
-      const fecha = prompt('Fecha de pago (YYYY-MM-DD):')
-      const comp = prompt('Número de comprobante:')
-      if (!fecha || !comp) return
-      body.fecha_pago = fecha
-      body.numero_comprobante = comp
+      body.fecha_pago = fecha_pago
+      body.numero_comprobante = numero_comprobante
     }
     await fetch('/api/seguridad-social', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    setPagoId(null)
     load()
   }
 
@@ -134,6 +134,14 @@ export default function SeguridadSocialPage() {
           </form>
         )}
 
+        {pagoId && (
+          <PagoModal
+            titulo="Registrar pago de planilla"
+            onSubmit={(f, c) => handleAction(pagoId, 'pagar', f, c)}
+            onCancel={() => setPagoId(null)}
+          />
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -159,7 +167,7 @@ export default function SeguridadSocialPage() {
                       <button onClick={() => handleAction(r.id, 'aprobar')} className="text-green-600 hover:underline text-xs mr-2">Aprobar</button>
                     )}
                     {r.estado === 'aprobada' && rol === 'gerencia' && (
-                      <button onClick={() => handleAction(r.id, 'pagar')} className="text-blue-600 hover:underline text-xs">Registrar pago</button>
+                      <button onClick={() => setPagoId(r.id)} className="text-blue-600 hover:underline text-xs">Registrar pago</button>
                     )}
                   </td>
                 </tr>

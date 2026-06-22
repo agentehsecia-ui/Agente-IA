@@ -6,6 +6,7 @@ import Badge from '@/components/Badge'
 import { Nomina } from '@/lib/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { getPerfil } from '@/lib/auth'
+import PagoModal from '@/components/PagoModal'
 
 const TIPOS_NOMINA: Record<string, string> = {
   quincenal: 'Quincenal', mensual: 'Mensual', prima: 'Prima',
@@ -19,6 +20,7 @@ export default function NominaPage() {
   const [userId, setUserId] = useState('')
   const [form, setForm] = useState({ periodo: '', tipo_nomina: 'quincenal', valor_total: '', cantidad_colaboradores: '', fecha_limite: '', observaciones: '' })
   const [saving, setSaving] = useState(false)
+  const [pagoId, setPagoId] = useState<string | null>(null)
 
   async function load() {
     const res = await fetch('/api/nomina')
@@ -49,20 +51,18 @@ export default function NominaPage() {
     load()
   }
 
-  async function handleAction(id: string, accion: string) {
+  async function handleAction(id: string, accion: string, fecha_pago?: string, numero_comprobante?: string) {
     const body: any = { id, accion, usuario_id: userId }
     if (accion === 'pagar') {
-      const fecha = prompt('Fecha de pago (YYYY-MM-DD):')
-      const comp = prompt('Número de comprobante:')
-      if (!fecha || !comp) return
-      body.fecha_pago = fecha
-      body.numero_comprobante = comp
+      body.fecha_pago = fecha_pago
+      body.numero_comprobante = numero_comprobante
     }
     await fetch('/api/nomina', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
+    setPagoId(null)
     load()
   }
 
@@ -128,6 +128,14 @@ export default function NominaPage() {
           </form>
         )}
 
+        {pagoId && (
+          <PagoModal
+            titulo="Registrar pago de nómina"
+            onSubmit={(f, c) => handleAction(pagoId, 'pagar', f, c)}
+            onCancel={() => setPagoId(null)}
+          />
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
@@ -155,7 +163,7 @@ export default function NominaPage() {
                       <button onClick={() => handleAction(r.id, 'aprobar')} className="text-green-600 hover:underline text-xs mr-2">Aprobar</button>
                     )}
                     {r.estado === 'aprobada' && rol === 'gerencia' && (
-                      <button onClick={() => handleAction(r.id, 'pagar')} className="text-blue-600 hover:underline text-xs">Registrar pago</button>
+                      <button onClick={() => setPagoId(r.id)} className="text-blue-600 hover:underline text-xs">Registrar pago</button>
                     )}
                   </td>
                 </tr>

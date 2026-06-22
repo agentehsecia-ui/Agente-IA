@@ -6,7 +6,7 @@ import AppShell from '@/components/AppShell'
 import Badge from '@/components/Badge'
 import { Solicitud } from '@/lib/types'
 import { formatCurrency, formatDate, TIPO_PAGO_LABELS, ESTADO_LABELS } from '@/lib/format'
-import { Plus, MessageCircle, Download } from 'lucide-react'
+import { Plus, MessageCircle, Download, Edit3 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase'
 
 function generateWhatsAppText(s: Solicitud): string {
@@ -154,13 +154,24 @@ export default function SolicitudesPage() {
                     <td className="px-4 py-3 text-gray-600">{formatDate(s.fecha_limite)}</td>
                     <td className="px-4 py-3"><Badge estado={s.estado} /></td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleWhatsApp(s)}
-                        title="Copiar para WhatsApp"
-                        className="p-1.5 hover:bg-green-50 rounded text-green-600"
-                      >
-                        <MessageCircle size={16} />
-                      </button>
+                      <div className="flex gap-1">
+                        {s.estado === 'aclaracion' && (
+                          <a
+                            href={`/solicitudes/${s.id}/editar`}
+                            title="Editar y corregir"
+                            className="p-1.5 hover:bg-orange-50 rounded text-orange-600"
+                          >
+                            <Edit3 size={16} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleWhatsApp(s)}
+                          title="Copiar para WhatsApp"
+                          className="p-1.5 hover:bg-green-50 rounded text-green-600"
+                        >
+                          <MessageCircle size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
