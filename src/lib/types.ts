@@ -44,6 +44,7 @@ export interface Solicitud {
   fecha_pago: string | null
   numero_comprobante: string | null
   observacion_aclaracion: string | null
+  referencia_interna: string | null
   creado_por: string
   created_at: string
   proveedor?: Proveedor

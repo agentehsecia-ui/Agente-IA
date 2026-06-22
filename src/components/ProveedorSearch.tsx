@@ -10,7 +10,9 @@ interface Props {
 
 export default function ProveedorSearch({ onSelect, selected }: Props) {
   const [query, setQuery] = useState('')
+  const [allProveedores, setAllProveedores] = useState<Proveedor[]>([])
   const [results, setResults] = useState<Proveedor[]>([])
+  const [showDropdown, setShowDropdown] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [newProv, setNewProv] = useState({
     nit: '', razon_social: '', banco: '', tipo_cuenta: '', numero_cuenta: '',
@@ -18,15 +20,27 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
   })
   const [saving, setSaving] = useState(false)
 
+  // Cargar todos los proveedores al montar
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return }
-    const t = setTimeout(() => {
-      fetch(`/api/proveedores?q=${encodeURIComponent(query)}`)
-        .then(r => r.json())
-        .then(setResults)
-    }, 300)
-    return () => clearTimeout(t)
-  }, [query])
+    fetch('/api/proveedores')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setAllProveedores(data) })
+  }, [])
+
+  // Filtrar localmente al escribir
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults(allProveedores)
+      return
+    }
+    const q = query.toLowerCase()
+    const filtered = allProveedores.filter(p =>
+      p.razon_social.toLowerCase().includes(q) ||
+      p.nit.toLowerCase().includes(q) ||
+      (p.numero_cuenta && p.numero_cuenta.includes(q))
+    )
+    setResults(filtered)
+  }, [query, allProveedores])
 
   async function handleCreateProv(e: React.FormEvent) {
     e.preventDefault()
@@ -37,8 +51,12 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
       body: JSON.stringify(newProv),
     })
     const prov = await res.json()
-    onSelect(prov)
-    setShowNew(false)
+    if (prov.id) {
+      setAllProveedores(prev => [...prev, prov])
+      onSelect(prov)
+      setShowNew(false)
+      setNewProv({ nit: '', razon_social: '', banco: '', tipo_cuenta: '', numero_cuenta: '', contacto: '', email: '', telefono: '' })
+    }
     setSaving(false)
   }
 
@@ -48,9 +66,14 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">{selected.razon_social}</p>
-            <p className="text-xs text-gray-500">NIT: {selected.nit} | {selected.banco} {selected.numero_cuenta}</p>
+            <p className="text-xs text-gray-500">
+              NIT/CC: {selected.nit}
+              {selected.banco && ` | ${selected.banco}`}
+              {selected.tipo_cuenta && ` - ${selected.tipo_cuenta}`}
+              {selected.numero_cuenta && ` ${selected.numero_cuenta}`}
+            </p>
           </div>
-          <button onClick={() => { onSelect(null as any); setQuery('') }} className="text-xs text-blue-600 hover:underline">
+          <button onClick={() => { onSelect(null as any); setQuery(''); setShowDropdown(false) }} className="text-xs text-blue-600 hover:underline">
             Cambiar
           </button>
         </div>
@@ -59,50 +82,56 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative">
       <input
         type="text"
         value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Buscar por NIT o razón social..."
+        onChange={e => { setQuery(e.target.value); setShowDropdown(true); setShowNew(false) }}
+        onFocus={() => setShowDropdown(true)}
+        placeholder="Buscar por nombre, NIT, cédula o número de cuenta..."
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-sm"
       />
 
-      {results.length > 0 && (
-        <div className="border rounded-lg max-h-40 overflow-y-auto">
-          {results.map(p => (
-            <button
-              key={p.id}
-              onClick={() => { onSelect(p); setQuery(''); setResults([]) }}
-              className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b last:border-b-0 text-sm"
-            >
-              <span className="font-medium">{p.razon_social}</span>
-              <span className="text-gray-500 ml-2">NIT: {p.nit}</span>
-            </button>
-          ))}
+      {showDropdown && !showNew && (
+        <div className="border rounded-lg max-h-48 overflow-y-auto bg-white shadow-lg z-10 absolute w-full">
+          {results.length > 0 ? (
+            results.map(p => (
+              <button
+                key={p.id}
+                onClick={() => { onSelect(p); setQuery(''); setShowDropdown(false) }}
+                className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b last:border-b-0 text-sm"
+              >
+                <div className="font-medium">{p.razon_social}</div>
+                <div className="text-xs text-gray-500">
+                  NIT/CC: {p.nit}
+                  {p.banco && ` | ${p.banco}`}
+                  {p.numero_cuenta && ` - ${p.numero_cuenta}`}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-gray-500">No se encontraron resultados</div>
+          )}
+          <button
+            onClick={() => { setShowNew(true); setShowDropdown(false) }}
+            className="w-full text-left px-4 py-2.5 text-brand-600 hover:bg-blue-50 border-t text-sm font-medium"
+          >
+            + Crear nuevo proveedor / tercero
+          </button>
         </div>
-      )}
-
-      {query.length >= 2 && results.length === 0 && !showNew && (
-        <button
-          onClick={() => { setShowNew(true); setNewProv(prev => ({ ...prev, nit: query })) }}
-          className="text-sm text-brand-600 hover:underline"
-        >
-          + Crear nuevo proveedor
-        </button>
       )}
 
       {showNew && (
         <form onSubmit={handleCreateProv} className="bg-gray-50 border rounded-lg p-4 space-y-3">
-          <p className="text-sm font-medium text-gray-700">Nuevo proveedor</p>
+          <p className="text-sm font-medium text-gray-700">Nuevo proveedor / tercero</p>
           <div className="grid grid-cols-2 gap-3">
-            <input required placeholder="NIT *" value={newProv.nit} onChange={e => setNewProv(p => ({ ...p, nit: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
-            <input required placeholder="Razón Social *" value={newProv.razon_social} onChange={e => setNewProv(p => ({ ...p, razon_social: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
+            <input required placeholder="NIT o Cédula *" value={newProv.nit} onChange={e => setNewProv(p => ({ ...p, nit: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
+            <input required placeholder="Nombre o Razón Social *" value={newProv.razon_social} onChange={e => setNewProv(p => ({ ...p, razon_social: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
             <input placeholder="Banco" value={newProv.banco} onChange={e => setNewProv(p => ({ ...p, banco: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
             <select value={newProv.tipo_cuenta} onChange={e => setNewProv(p => ({ ...p, tipo_cuenta: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm">
               <option value="">Tipo de cuenta</option>
-              <option value="ahorros">Ahorros</option>
-              <option value="corriente">Corriente</option>
+              <option value="Cuenta de Ahorro">Cuenta de Ahorro</option>
+              <option value="Cuenta Corriente">Cuenta Corriente</option>
             </select>
             <input placeholder="Número de cuenta" value={newProv.numero_cuenta} onChange={e => setNewProv(p => ({ ...p, numero_cuenta: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
             <input placeholder="Contacto" value={newProv.contacto} onChange={e => setNewProv(p => ({ ...p, contacto: e.target.value }))} className="px-3 py-2 border rounded-lg text-sm" />
@@ -111,7 +140,7 @@ export default function ProveedorSearch({ onSelect, selected }: Props) {
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="bg-brand-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-brand-700 disabled:opacity-50">
-              {saving ? 'Guardando...' : 'Guardar proveedor'}
+              {saving ? 'Guardando...' : 'Guardar'}
             </button>
             <button type="button" onClick={() => setShowNew(false)} className="text-gray-500 text-sm hover:underline">Cancelar</button>
           </div>

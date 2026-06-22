@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       fecha_limite: body.fecha_limite,
       centro_costo: body.centro_costo,
       observaciones: body.observaciones,
+      referencia_interna: body.referencia_interna,
       creado_por: body.creado_por,
       estado: 'pendiente',
     })
