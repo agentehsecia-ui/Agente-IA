@@ -6,7 +6,7 @@ import Badge from '@/components/Badge'
 import { Solicitud } from '@/lib/types'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { createBrowserClient } from '@/lib/supabase'
-import { CheckCircle, XCircle, HelpCircle, Clock, AlertTriangle, FileText, Download } from 'lucide-react'
+import { CheckCircle, XCircle, HelpCircle, Clock, AlertTriangle, FileText, Edit3 } from 'lucide-react'
 
 export default function AprobacionesPage() {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
@@ -15,6 +15,10 @@ export default function AprobacionesPage() {
   const [processing, setProcessing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
+  // Modal editar datos bancarios
+  const [editBank, setEditBank] = useState(false)
+  const [bankForm, setBankForm] = useState({ banco: '', tipo_cuenta: '', numero_cuenta: '' })
+  const [savingBank, setSavingBank] = useState(false)
 
   async function load() {
     const res = await fetch('/api/solicitudes?estado=pendiente')
@@ -30,6 +34,33 @@ export default function AprobacionesPage() {
     setSelected(detail)
     setObservacion('')
     setMsg('')
+    setEditBank(false)
+  }
+
+  async function handleSaveBank(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selected?.proveedor) return
+    setSavingBank(true)
+
+    await fetch('/api/proveedores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nit: selected.proveedor.nit,
+        razon_social: selected.proveedor.razon_social,
+        banco: bankForm.banco,
+        tipo_cuenta: bankForm.tipo_cuenta,
+        numero_cuenta: bankForm.numero_cuenta,
+      }),
+    })
+
+    // Recargar detalle con datos frescos
+    const res = await fetch(`/api/solicitudes/${selected.id}`)
+    const detail = await res.json()
+    setSelected(detail)
+    setEditBank(false)
+    setSavingBank(false)
+    setMsg('✅ Datos bancarios actualizados')
   }
 
   const urgentes = solicitudes.filter(s => {
@@ -47,9 +78,8 @@ export default function AprobacionesPage() {
       return
     }
 
-    // Validar datos bancarios antes de aprobar
     if (accion === 'aprobar' && (!selected.proveedor?.banco || !selected.proveedor?.numero_cuenta)) {
-      setMsg('⚠️ El proveedor no tiene datos bancarios completos. Agregue los datos bancarios antes de aprobar.')
+      setMsg('⚠️ El proveedor no tiene datos bancarios completos. Use el botón de editar para agregarlos.')
       return
     }
 
@@ -70,8 +100,8 @@ export default function AprobacionesPage() {
     })
 
     if (res.ok) {
-      const accionLabel = accion === 'aprobar' ? 'aprobada' : accion === 'rechazar' ? 'rechazada' : 'enviada a aclaración'
-      setMsg(`✅ Solicitud ${accionLabel} correctamente`)
+      const label = accion === 'aprobar' ? 'aprobada' : accion === 'rechazar' ? 'rechazada' : 'enviada a aclaración'
+      setMsg(`✅ Solicitud ${label} correctamente`)
       setSelected(null)
       setObservacion('')
       load()
@@ -126,13 +156,13 @@ export default function AprobacionesPage() {
         </div>
 
         {msg && (
-          <div className={`px-4 py-2 rounded-lg text-sm ${msg.startsWith('Error') || msg.startsWith('⚠️') || msg.startsWith('Debe') ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+          <div className={`px-4 py-2 rounded-lg text-sm ${msg.startsWith('✅') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
             {msg}
           </div>
         )}
 
         <div className="grid grid-cols-3 gap-6">
-          {/* Lista de pendientes */}
+          {/* Lista */}
           <div className="col-span-2 bg-white rounded-xl shadow-sm border overflow-hidden">
             <div className="px-4 py-3 border-b bg-gray-50 font-medium text-sm text-gray-700">Solicitudes pendientes</div>
             {loading ? (
@@ -143,7 +173,6 @@ export default function AprobacionesPage() {
               <div className="divide-y max-h-[600px] overflow-y-auto">
                 {solicitudes.map(s => {
                   const dias = Math.ceil((new Date(s.fecha_limite).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  const isUrgent = dias <= 3
                   return (
                     <button
                       key={s.id}
@@ -157,8 +186,8 @@ export default function AprobacionesPage() {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-sm">{formatCurrency(s.valor)}</p>
-                          <p className={`text-xs ${isUrgent ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
-                            {dias < 0 ? `Vencida hace ${Math.abs(dias)} días` : `${dias} días restantes`}
+                          <p className={`text-xs ${dias <= 3 ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
+                            {dias < 0 ? `Vencida hace ${Math.abs(dias)} días` : `${dias} días`}
                           </p>
                         </div>
                       </div>
@@ -169,30 +198,66 @@ export default function AprobacionesPage() {
             )}
           </div>
 
-          {/* Panel de detalle y acción */}
+          {/* Panel detalle */}
           <div className="bg-white rounded-xl shadow-sm border p-5 max-h-[700px] overflow-y-auto">
             {selected ? (
               <div className="space-y-4">
                 <h3 className="font-semibold">Solicitud #{selected.numero}</h3>
 
-                {/* Datos del proveedor destacados */}
+                {/* Proveedor + datos bancarios */}
                 <div className="bg-gray-50 rounded-lg p-3 space-y-1">
-                  <p className="font-medium text-sm">{selected.proveedor?.razon_social}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{selected.proveedor?.razon_social}</p>
+                    <button
+                      onClick={() => {
+                        setBankForm({
+                          banco: selected.proveedor?.banco || '',
+                          tipo_cuenta: selected.proveedor?.tipo_cuenta || '',
+                          numero_cuenta: selected.proveedor?.numero_cuenta || '',
+                        })
+                        setEditBank(true)
+                      }}
+                      title="Editar datos bancarios"
+                      className="p-1 hover:bg-gray-200 rounded text-gray-500"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  </div>
                   <p className="text-xs text-gray-500">NIT/CC: {selected.proveedor?.nit}</p>
-                  {selected.proveedor?.banco ? (
+                  {selected.proveedor?.banco && selected.proveedor?.numero_cuenta ? (
                     <div className="mt-2 bg-blue-50 rounded p-2">
                       <p className="text-xs font-medium text-blue-800">Datos bancarios:</p>
                       <p className="text-xs text-blue-700">{selected.proveedor.banco} — {selected.proveedor.tipo_cuenta}</p>
-                      <p className="text-xs text-blue-700 font-mono">{selected.proveedor.numero_cuenta}</p>
+                      <p className="text-xs text-blue-700 font-mono font-bold">{selected.proveedor.numero_cuenta}</p>
                     </div>
                   ) : (
                     <div className="mt-2 bg-red-50 rounded p-2">
-                      <p className="text-xs text-red-600 font-medium">⚠️ Sin datos bancarios</p>
+                      <p className="text-xs text-red-600 font-medium">⚠️ Sin datos bancarios — use el ícono ✏️ para agregar</p>
                     </div>
                   )}
                 </div>
 
-                {/* Detalle del pago */}
+                {/* Modal editar banco inline */}
+                {editBank && (
+                  <form onSubmit={handleSaveBank} className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 space-y-2">
+                    <p className="text-xs font-medium text-yellow-800">Editar datos bancarios</p>
+                    <input placeholder="Banco *" required value={bankForm.banco} onChange={e => setBankForm(f => ({ ...f, banco: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm" />
+                    <select value={bankForm.tipo_cuenta} onChange={e => setBankForm(f => ({ ...f, tipo_cuenta: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm">
+                      <option value="">Tipo de cuenta</option>
+                      <option value="Cuenta de Ahorro">Cuenta de Ahorro</option>
+                      <option value="Cuenta Corriente">Cuenta Corriente</option>
+                    </select>
+                    <input placeholder="N° de cuenta *" required value={bankForm.numero_cuenta} onChange={e => setBankForm(f => ({ ...f, numero_cuenta: e.target.value }))} className="w-full px-2 py-1.5 border rounded text-sm" />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={savingBank} className="bg-brand-600 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                        {savingBank ? 'Guardando...' : 'Guardar'}
+                      </button>
+                      <button type="button" onClick={() => setEditBank(false)} className="text-gray-500 text-xs">Cancelar</button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Detalle */}
                 <div className="space-y-2 text-sm">
                   <p><span className="text-gray-500">Concepto:</span> {selected.concepto}</p>
                   <p><span className="text-gray-500">Valor:</span> <strong className="text-lg">{formatCurrency(selected.valor)}</strong></p>
@@ -210,6 +275,7 @@ export default function AprobacionesPage() {
                       <div key={b.id} className="text-xs border-b border-yellow-200 py-1.5 last:border-0">
                         <p className="font-medium">{b.proveedor?.razon_social} — {formatCurrency(b.valor)}</p>
                         <p className="text-yellow-700">{b.concepto}</p>
+                        {b.proveedor?.banco && <p className="text-yellow-600">{b.proveedor.banco} - {b.proveedor.numero_cuenta}</p>}
                       </div>
                     ))}
                   </div>
@@ -220,15 +286,9 @@ export default function AprobacionesPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-gray-600">Documentos adjuntos:</p>
                     {selected.adjuntos.map((a: any) => (
-                      <a
-                        key={a.id}
-                        href={a.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs text-brand-600 hover:underline bg-gray-50 px-2 py-1.5 rounded"
-                      >
-                        <FileText size={14} />
-                        {a.nombre_archivo}
+                      <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs text-brand-600 hover:underline bg-gray-50 px-2 py-1.5 rounded">
+                        <FileText size={14} /> {a.nombre_archivo}
                       </a>
                     ))}
                   </div>
@@ -236,7 +296,7 @@ export default function AprobacionesPage() {
 
                 {/* Observación */}
                 <textarea
-                  placeholder={`Observación ${selected ? '(obligatoria para rechazar o aclarar)' : ''}`}
+                  placeholder="Observación (obligatoria para rechazar o aclarar)"
                   value={observacion}
                   onChange={e => setObservacion(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg text-sm"
@@ -245,25 +305,16 @@ export default function AprobacionesPage() {
 
                 {/* Acciones */}
                 <div className="space-y-2">
-                  <button
-                    onClick={() => handleAccion('aprobar')}
-                    disabled={processing}
-                    className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
+                  <button onClick={() => handleAccion('aprobar')} disabled={processing}
+                    className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
                     <CheckCircle size={16} /> Aprobar
                   </button>
-                  <button
-                    onClick={() => handleAccion('aclaracion')}
-                    disabled={processing}
-                    className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
+                  <button onClick={() => handleAccion('aclaracion')} disabled={processing}
+                    className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
                     <HelpCircle size={16} /> Solicitar aclaración
                   </button>
-                  <button
-                    onClick={() => handleAccion('rechazar')}
-                    disabled={processing}
-                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50"
-                  >
+                  <button onClick={() => handleAccion('rechazar')} disabled={processing}
+                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50">
                     <XCircle size={16} /> Rechazar
                   </button>
                 </div>
