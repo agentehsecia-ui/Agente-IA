@@ -138,7 +138,7 @@ export default function NuevaSolicitud() {
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
         {/* Beneficiarios */}
         {beneficiarios.map((b, i) => (
-          <div key={i} className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+          <div key={i} className="bg-white rounded-xl shadow-sm border p-6 space-y-4 overflow-visible">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">
                 {beneficiarios.length === 1 ? 'Proveedor / Tercero' : `Beneficiario ${i + 1}`}
@@ -231,7 +231,7 @@ export default function NuevaSolicitud() {
         </div>
 
         {/* Adjuntos */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4 overflow-visible">
           <h3 className="font-semibold text-gray-800">Documentos adjuntos</h3>
           <p className="text-xs text-gray-500">Solo PDF o JPG, máximo 2MB por archivo</p>
           <input type="file" accept=".pdf,.jpg,.jpeg" multiple onChange={handleFileChange} className="text-sm" />
