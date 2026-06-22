@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Perfil } from '@/lib/types'
 import {
   LayoutDashboard, FileText, CheckCircle, CreditCard,
-  Shield, Users, ClipboardList, Settings, LogOut
+  Shield, Users, ClipboardList, Settings, LogOut, UserCog
 } from 'lucide-react'
 import { signOut } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
@@ -27,6 +27,7 @@ export default function Sidebar({ perfil }: Props) {
     { href: '/nomina', label: 'Nómina', icon: Users, roles: ['sostenibilidad', 'gerencia', 'admin'] },
     { href: '/auditoria', label: 'Auditoría', icon: ClipboardList, roles: ['gerencia', 'admin'] },
     { href: '/admin', label: 'Administración', icon: Settings, roles: ['admin'] },
+    { href: '/perfil', label: 'Mi Perfil', icon: UserCog, roles: ['sostenibilidad', 'gerencia', 'admin'] },
   ]
 
   const links = allLinks.filter(l => l.roles.includes(perfil.rol))
