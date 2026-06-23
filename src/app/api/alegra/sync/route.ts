@@ -1,9 +1,22 @@
 import { createServerClient } from '@/lib/supabase'
 import { getFacturasCompra } from '@/lib/alegra'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const supabase = createServerClient()
+
+  // Obtener el primer usuario con rol sostenibilidad o admin como creador por defecto
+  const { data: defaultUser } = await supabase
+    .from('perfiles')
+    .select('id')
+    .in('rol', ['sostenibilidad', 'admin'])
+    .limit(1)
+    .single()
+
+  const creadorId = defaultUser?.id || null
+  if (!creadorId) {
+    return NextResponse.json({ error: 'No hay usuario de sostenibilidad para asignar las solicitudes' }, { status: 400 })
+  }
 
   let bills
   try {
@@ -88,7 +101,7 @@ export async function POST() {
         estado: 'borrador',
         alegra_id: String(bill.id),
         alegra_number: bill.numberTemplate?.fullNumber || null,
-        creado_por: '00000000-0000-0000-0000-000000000000',
+        creado_por: creadorId,
       })
 
     if (solErr) {
