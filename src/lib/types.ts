@@ -1,6 +1,6 @@
 export type Rol = 'sostenibilidad' | 'gerencia' | 'admin'
 
-export type EstadoSolicitud = 'pendiente' | 'aprobada' | 'rechazada' | 'aclaracion' | 'pagada' | 'pagada_parcial'
+export type EstadoSolicitud = 'borrador' | 'pendiente' | 'aprobada' | 'rechazada' | 'aclaracion' | 'pagada' | 'pagada_parcial'
 
 export type TipoPago = 'proveedor' | 'hotel' | 'transporte' | 'honorarios' | 'tecnologia' | 'eventos' | 'seguridad_social' | 'nomina' | 'otro'
 
