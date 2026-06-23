@@ -97,7 +97,7 @@ export default function SolicitudesPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex gap-2 flex-wrap">
-            {['', 'pendiente', 'aprobada', 'aclaracion', 'pagada', 'rechazada'].map(f => (
+            {['', 'borrador', 'pendiente', 'aprobada', 'aclaracion', 'pagada', 'rechazada'].map(f => (
               <button
                 key={f}
                 onClick={() => setFiltro(f)}
@@ -155,7 +155,7 @@ export default function SolicitudesPage() {
                     <td className="px-4 py-3"><Badge estado={s.estado} /></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        {s.estado === 'aclaracion' && (
+                        {(s.estado === 'aclaracion' || s.estado === 'borrador') && (
                           <a
                             href={`/solicitudes/${s.id}/editar`}
                             title="Editar y corregir"

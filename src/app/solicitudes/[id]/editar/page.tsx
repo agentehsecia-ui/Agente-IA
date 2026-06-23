@@ -63,7 +63,7 @@ export default function EditarSolicitud() {
 
   if (loading) return <AppShell title="Editar Solicitud"><div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" /></div></AppShell>
 
-  if (!solicitud || solicitud.estado !== 'aclaracion') {
+  if (!solicitud || !['aclaracion', 'borrador'].includes(solicitud.estado)) {
     return (
       <AppShell title="Editar Solicitud">
         <div className="max-w-2xl mx-auto bg-red-50 border border-red-200 rounded-xl p-6 text-center">
@@ -132,7 +132,7 @@ export default function EditarSolicitud() {
             disabled={saving}
             className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium transition disabled:opacity-50"
           >
-            {saving ? 'Enviando...' : 'Corregir y reenviar a Gerencia'}
+            {saving ? 'Enviando...' : solicitud.estado === 'borrador' ? 'Completar y enviar a aprobación' : 'Corregir y reenviar a Gerencia'}
           </button>
           <button type="button" onClick={() => router.push('/solicitudes')} className="text-gray-600 hover:text-gray-800 px-4 py-2.5">
             Cancelar

@@ -37,8 +37,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     .eq('id', params.id)
     .single()
 
-  if (!current || current.estado !== 'aclaracion') {
-    return NextResponse.json({ error: 'Solo se pueden editar solicitudes en aclaración' }, { status: 400 })
+  if (!current || !['aclaracion', 'borrador'].includes(current.estado)) {
+    return NextResponse.json({ error: 'Solo se pueden editar solicitudes en aclaración o borrador' }, { status: 400 })
   }
 
   const updateData: any = {

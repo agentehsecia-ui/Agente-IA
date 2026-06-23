@@ -26,6 +26,7 @@ export function formatDateTime(date: string): string {
 }
 
 export const ESTADO_LABELS: Record<string, string> = {
+  borrador: 'Borrador (Alegra)',
   pendiente: 'Pendiente',
   aprobada: 'Aprobada',
   rechazada: 'Rechazada',
@@ -35,6 +36,7 @@ export const ESTADO_LABELS: Record<string, string> = {
 }
 
 export const ESTADO_COLORS: Record<string, string> = {
+  borrador: 'bg-purple-100 text-purple-800',
   pendiente: 'bg-yellow-100 text-yellow-800',
   aprobada: 'bg-blue-100 text-blue-800',
   rechazada: 'bg-red-100 text-red-800',
