@@ -7,7 +7,7 @@ export async function POST() {
 
   let bills
   try {
-    bills = await getFacturasCompra(100)
+    bills = await getFacturasCompra(30)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

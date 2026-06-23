@@ -23,7 +23,7 @@ async function alegraFetch(endpoint: string, options: RequestInit = {}) {
   return res.json()
 }
 
-export async function getFacturasCompra(limit = 50, start = 0) {
+export async function getFacturasCompra(limit = 30, start = 0) {
   return alegraFetch(`/bills?limit=${limit}&start=${start}&order_direction=DESC&order_field=date`)
 }
 
